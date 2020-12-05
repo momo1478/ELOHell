@@ -124,53 +124,27 @@ namespace PRoConEvents
 				float oldARating = this.Rating;
 				float oldBRating = player.Rating;
 
-				EloRating(this.Rating, player.Rating, ELOConstant, true);
+				EloRating(this, player, true);
 
 				return (this.Rating - oldARating, player.Rating - oldBRating);
 			}
 
 			// Function to calculate the Probability 
-			static float Probability(float rating1, float rating2)
+			static float Probability(float playerOneRating, float playerTwoRating)
 			{
-				return 1.0f * 1.0f / (1 + 1.0f * (float)(Math.Pow(10, 1.0f * (rating1 - rating2) / 400)));
+				return 1f / (1f + (float)Math.Pow(10, (playerTwoRating - playerOneRating) / 400.0));
 			}
 
 			// Function to calculate Elo rating 
 			// K is a constant. 
 			// d determines whether Player A wins or 
 			// Player B.  
-			public static void EloRating(float Ra, float Rb, int K, bool d)
+			public void EloRating(ELO Ra, ELO Rb, bool AWon)
 			{
-				// To calculate the Winning 
-				// Probability of Player B 
-				float Pb = Probability(Ra, Rb);
+				int delta = (int)(ELO.ELOConstant * (Convert.ToInt32(AWon) - Probability(Ra.Rating, Rb.Rating)));
 
-				// To calculate the Winning 
-				// Probability of Player A 
-				float Pa = Probability(Rb, Ra);
-
-				// Case -1 When Player A wins 
-				// Updating the Elo Ratings 
-				if (d == true)
-				{
-					Ra = Ra + K * (1 - Pa);
-					Rb = Rb + K * (0 - Pb);
-				}
-
-				// Case -2 When Player B wins 
-				// Updating the Elo Ratings 
-				else
-				{
-					Ra = Ra + K * (0 - Pa);
-					Rb = Rb + K * (1 - Pb);
-				}
-
-				//Console.Write("Updated Ratings:-\n");
-
-				//Console.Write("Ra = " + (Math.Round(Ra
-				//			 * 1000000.0) / 1000000.0)
-				//			+ " Rb = " + Math.Round(Rb
-				//			 * 1000000.0) / 1000000.0);
+				Ra.Rating += delta;
+				Rb.Rating -= delta;
 			}
 		}
 
@@ -296,17 +270,20 @@ namespace PRoConEvents
 
 		public override void OnPlayerKilled(Kill kKillerVictimDetails) 
 		{
-			string killerName = kKillerVictimDetails.Killer.SoldierName;
-			string victimName = kKillerVictimDetails.Victim.SoldierName;
+			if(!kKillerVictimDetails.IsSuicide || kKillerVictimDetails.DamageType != "DamageArea")
+            {
+				string killerName = kKillerVictimDetails.Killer.SoldierName;
+				string victimName = kKillerVictimDetails.Victim.SoldierName;
 
-			ELO killer = ELOList[killerName];
-			ELO victim = ELOList[victimName];
-			
-			(float killer, float victim) diff = killer.Beat(victim);
+				ELO killer = ELOList[killerName];
+				ELO victim = ELOList[victimName];
 
-			ConsoleWrite($"{killerName} ({(int)killer.Rating}) |{(diff.killer >= 0f ? "+" : "") + diff.killer}|".PadRight(40) +
-				         $" [{kKillerVictimDetails.DamageType}] " +
-						 $"{victimName} ({(int)victim.Rating}) |{(diff.victim >= 0f ? "+" : "") + diff.victim}|".PadLeft(40));
+				(float killer, float victim) diff = killer.Beat(victim);
+
+				ConsoleWrite($"{killerName} ({(int)killer.Rating}) |{(diff.killer >= 0f ? "+" : "") + diff.killer}|".PadRight(40) +
+							 $" [{kKillerVictimDetails.DamageType}] " +
+							 $"{victimName} ({(int)victim.Rating}) |{(diff.victim >= 0f ? "+" : "") + diff.victim}|".PadLeft(40));
+			}
 		}
 
 		public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory) { }
