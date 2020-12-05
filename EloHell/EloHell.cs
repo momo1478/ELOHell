@@ -113,6 +113,8 @@ namespace PRoConEvents
             public int Kills { get; set; }
             public int Deaths { get; set; }
 
+			public float KDR => (float)Kills / (Deaths == 0 ? 1 : Deaths);
+
             public ELO(string name, float rating = 1500f, int kills = 0, int deaths = 0)
             {
 				Name = name;
@@ -140,10 +142,7 @@ namespace PRoConEvents
 				return 1f / (1f + (float)Math.Pow(10, (playerTwoRating - playerOneRating) / 400.0));
 			}
 
-			// Function to calculate Elo rating 
-			// K is a constant. 
-			// d determines whether Player A wins or 
-			// Player B.  
+			// Adjusts ELOs of Ra and Rb based on AWon
 			public void EloRating(ELO Ra, ELO Rb, bool AWon)
 			{
 				int delta = (int)(ELO.ELOConstant * (Convert.ToInt32(AWon) - Probability(Ra.Rating, Rb.Rating)));
@@ -253,12 +252,13 @@ namespace PRoConEvents
 			List<ELO> ELOObjects = ELOList.Values.ToList();
 			ELOObjects.Sort();
 			
-			StringBuilder s = new StringBuilder("---ELO Rank---\n");
-			int rank = 1;
-			foreach (ELO player in ELOObjects)
+			StringBuilder s = new StringBuilder("\n^4---Top 10 ELO Rank---^0\n");
+			
+            for (int i = 0, rank = 1; i < 10; i++)
             {
-				s.AppendLine($"#{rank++} {player.Name} --> {player.Rating}");
-            }
+				ELO player = ELOObjects[i];
+				s.AppendLine($"#{rank++} {player.Name} --> {player.Rating}".PadRight(75) + $"KD({player.Kills}/{player.Deaths}) |{ player.KDR.ToString("F2")}|");
+			} 
 			ConsoleWrite(s.ToString());
 		}
 
