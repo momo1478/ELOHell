@@ -23,11 +23,15 @@ namespace PRoConEvents
 
         private bool fIsEnabled;
 		private int fDebugLevel;
+		private int TopNRanks;
+		private int ELOConstant;
 
 		public EloHell()
 		{
 			fIsEnabled = false;
 			fDebugLevel = 2;
+			TopNRanks = 10;
+			ELOConstant = 30;
 		}
 
         #region Utility
@@ -207,23 +211,39 @@ namespace PRoConEvents
 			List<CPluginVariable> lstReturn = new List<CPluginVariable>();
 
 			lstReturn.Add(new CPluginVariable("Settings|Debug level", fDebugLevel.GetType(), fDebugLevel));
+			lstReturn.Add(new CPluginVariable("Settings|Display Top N Ranks", TopNRanks.GetType(), TopNRanks));
+			lstReturn.Add(new CPluginVariable("Settings|ELO Constant", ELOConstant.GetType(), ELOConstant));
 
 			return lstReturn;
 		}
 
-		public List<CPluginVariable> GetPluginVariables()
-		{
-			return GetDisplayPluginVariables();
-		}
-
 		public void SetPluginVariable(String strVariable, String strValue)
 		{
+			ConsoleWrite($"Var {strVariable} Val {strValue}");
 			if (Regex.Match(strVariable, @"Debug level").Success)
 			{
 				int tmp = 2;
 				int.TryParse(strValue, out tmp);
 				fDebugLevel = tmp;
 			}
+			else if (Regex.Match(strVariable, @"Display Top N Ranks").Success)
+			{
+				int tmp = 10;
+				int.TryParse(strValue, out tmp);
+				TopNRanks = tmp;
+			}
+			else if (Regex.Match(strVariable, @"ELO Constant").Success)
+			{
+				int tmp = 30;
+				int.TryParse(strValue, out tmp);
+				ELOConstant = tmp;
+				ELO.ELOConstant = ELOConstant;
+			}
+		}
+
+		public List<CPluginVariable> GetPluginVariables()
+		{
+			return GetDisplayPluginVariables();
 		}
 
 		public void OnPluginLoaded(String strHostName, String strPort, String strPRoConVersion)
@@ -252,9 +272,9 @@ namespace PRoConEvents
 			List<ELO> ELOObjects = ELOList.Values.ToList();
 			ELOObjects.Sort();
 			
-			StringBuilder s = new StringBuilder("\n^4---Top 10 ELO Rank---^0\n");
+			StringBuilder s = new StringBuilder($"\n^4---Top {TopNRanks} ELO Rank---^0\n");
 			
-            for (int i = 0, rank = 1; i < 10; i++)
+            for (int i = 0, rank = 1; i < TopNRanks; i++)
             {
 				ELO player = ELOObjects[i];
 				s.AppendLine($"#{rank++} {player.Name} --> {player.Rating}".PadRight(75) + $"KD({player.Kills}/{player.Deaths}) |{ player.KDR.ToString("F2")}|");
