@@ -10,6 +10,8 @@ using PRoCon.Core;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Players;
 using System.ComponentModel;
+using System.Linq;
+using System.Text;
 
 namespace PRoConEvents
 {
@@ -31,14 +33,14 @@ namespace PRoConEvents
         #region Utility
 		public void ConsoleWriteObjectProperties(object obj) 
 		{
-			string s = string.Empty;
+			StringBuilder s = new StringBuilder();
 			foreach (PropertyDescriptor descriptor in TypeDescriptor.GetProperties(obj))
 			{
 				string name = descriptor.Name;
 				object value = descriptor.GetValue(obj);
-				s += string.Format("{0}={1}\n", name, value);
+				s.AppendFormat("{0}={1}\n", name, value);
 			}
-			ConsoleWrite(s);
+			ConsoleWrite(s.ToString());
 		}
         #endregion
 
@@ -102,7 +104,7 @@ namespace PRoConEvents
 
         #region ELO
 
-        class ELO
+        class ELO : IComparable<ELO>
         {
 			public static int ELOConstant { get; set; } = 30;
 
@@ -124,13 +126,16 @@ namespace PRoConEvents
 				float oldARating = this.Rating;
 				float oldBRating = player.Rating;
 
+				this.Kills++;
+				player.Deaths++;
+
 				EloRating(this, player, true);
 
 				return (this.Rating - oldARating, player.Rating - oldBRating);
 			}
 
 			// Function to calculate the Probability 
-			static float Probability(float playerOneRating, float playerTwoRating)
+			float Probability(float playerOneRating, float playerTwoRating)
 			{
 				return 1f / (1f + (float)Math.Pow(10, (playerTwoRating - playerOneRating) / 400.0));
 			}
@@ -146,7 +151,12 @@ namespace PRoConEvents
 				Ra.Rating += delta;
 				Rb.Rating -= delta;
 			}
-		}
+
+            public int CompareTo(ELO other)
+            {
+				return (int)(other.Rating - this.Rating);
+            }
+        }
 
         #endregion
 
@@ -240,7 +250,16 @@ namespace PRoConEvents
 
 		public override void OnServerInfo(CServerInfo serverInfo)
 		{
+			List<ELO> ELOObjects = ELOList.Values.ToList();
+			ELOObjects.Sort();
 			
+			StringBuilder s = new StringBuilder("---ELO Rank---\n");
+			int rank = 1;
+			foreach (ELO player in ELOObjects)
+            {
+				s.AppendLine($"#{rank++} {player.Name} --> {player.Rating}");
+            }
+			ConsoleWrite(s.ToString());
 		}
 
 		public override void OnResponseError(List<String> requestWords, String error) { }
@@ -281,7 +300,7 @@ namespace PRoConEvents
 				(float killer, float victim) diff = killer.Beat(victim);
 
 				ConsoleWrite($"{killerName} ({(int)killer.Rating}) |{(diff.killer >= 0f ? "+" : "") + diff.killer}|".PadRight(40) +
-							 $" [{kKillerVictimDetails.DamageType}] " +
+							 $" [{kKillerVictimDetails.DamageType}] ".PadLeft(20) +
 							 $"{victimName} ({(int)victim.Rating}) |{(diff.victim >= 0f ? "+" : "") + diff.victim}|".PadLeft(40));
 			}
 		}
